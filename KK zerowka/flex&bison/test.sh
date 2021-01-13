@@ -1,0 +1,1 @@
+./c < test.c > output.txt
