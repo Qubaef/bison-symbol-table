@@ -24,6 +24,7 @@ float FunctionWithDeclarationOfVariables( double d )
 	  int year, month;
 	  int day;
 	} d1;
+	FunctionWithDeclarationOfVariables(half);
 }
 int x1 = fromASCII + 2 * ( 20 +  toASCII ); 
 double realTest = 12.34 + .56 + 78.;
@@ -31,15 +32,22 @@ void main( void )
 {
 	int a = 1, b, c, m;
 	int t[3];
+	int test;
 	struct data {
 	  int day, month, year;
 	} d;
+	int test1[10] = "siema";
+	double symbol_table = 1;
+	test1 = 5;
+	main = 10;
 
 	EmptyFunction(); 
-	EmptyFunctionWithParameters( "x", 123, 12.34 );
+	EmptyFunctionWithParameters(123.0, 12.34 );
+	symbol_table = 0.5;
+	symbol_table = 2;
 	printf( "\n\n\nExtended ASCII codes\n\n" );
 	// for loop
-	for ( uc = fromASCII; uc <= toASCII; uc1++ )
+	for (uc = fromASCII; uc <= toASCII; uc1++ )
 	{
 		int a;
 		int t[2];

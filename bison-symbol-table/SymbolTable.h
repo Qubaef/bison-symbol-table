@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "common.h"
 
+#define MAX_IDENTIFIER_LENGTH 64 /* maximum length of identifier */
 #define SCOPE_TABLE_SIZE 16
 #define MAX_FUNC_PARAMS 127		// according to C standard
 
@@ -28,6 +28,7 @@ typedef struct TableEntry
 } TableEntry;
 
 TableEntry* TableEntry_new(enum EntryType entryType, char* identifier, int* pFuncParams, int type, TableEntry* next);
+void modifyTableEntryIdentifier(TableEntry* pTableEntry, char* identifier);
 void TableEntry_delete(TableEntry* pTableEntry);
 
 
@@ -66,6 +67,11 @@ TableEntry* insertFunc(char* identifier, int type, int* pFuncParams);
 // returns pointer to entry
 // returns NULL if not found
 TableEntry* lookup(char* identifier);
+
+// check if symbol exists in current subscope
+// returns pointer to entry
+// returns NULL if not found
+TableEntry* lookup_subscope(char* identifier);
 
 // go down one scope
 int decScope(char* identifier);

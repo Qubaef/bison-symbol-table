@@ -51,35 +51,10 @@ TableEntry* TableEntry_new(enum EntryType entryType, char* identifier, int* pFun
 	return pTableEntry;
 }
 
-//TableEntry* TableEntry_new(TableEntry* pTableEntry)
-//{
-//	TableEntry* pNewTableEntry = malloc(sizeof(TableEntry));
-//	if (pNewTableEntry)
-//	{
-//		pNewTableEntry->entryType = pTableEntry->entryType;
-//		strcpy(pNewTableEntry->identifier, pTableEntry->identifier);
-//
-//		if (pTableEntry->entryType == FUNC && pTableEntry->pFuncParams != NULL)
-//		{
-//			pNewTableEntry->pFuncParams = calloc(MAX_FUNC_PARAMS, sizeof(int));
-//			memcpy(pNewTableEntry->pFuncParams, pTableEntry->pFuncParams, MAX_FUNC_PARAMS);
-//		}
-//		else
-//		{
-//			pNewTableEntry->pFuncParams = NULL;
-//		}
-//
-//		pNewTableEntry->type = pTableEntry->type;
-//		pNewTableEntry->next = pTableEntry->next;
-//		pNewTableEntry->pSubScope = pTableEntry->pSubScope;
-//	}
-//	else
-//	{
-//		printf("ERROR: TableEntry_new(): bad alloc.\n");
-//	}
-//
-//	return pNewTableEntry;
-//}
+void modifyTableEntryIdentifier(TableEntry* pTableEntry, char* identifier)
+{
+	strcpy(pTableEntry->identifier, identifier);
+}
 
 void TableEntry_delete(TableEntry* pTableEntry)
 {
@@ -189,10 +164,11 @@ TableEntry* insertFunc(char* identifier, int type, int* pFuncParams)
 TableEntry* lookup(char* identifier)
 {
 	ScopeNode* analyzedScope = currentScopeNode;
+	const unsigned hashScore = hash(identifier) % SCOPE_TABLE_SIZE;
 
 	while (analyzedScope != NULL)
 	{
-		TableEntry* pEntryCurrent = analyzedScope->tableEntry[hash(identifier) % SCOPE_TABLE_SIZE];
+		TableEntry* pEntryCurrent = analyzedScope->tableEntry[hashScore];
 
 		while (pEntryCurrent != NULL)
 		{
@@ -205,6 +181,23 @@ TableEntry* lookup(char* identifier)
 		}
 
 		analyzedScope = analyzedScope->pParent;
+	}
+
+	return NULL;
+}
+
+TableEntry* lookup_subscope(char* identifier)
+{
+	TableEntry* pEntryCurrent = currentScopeNode->tableEntry[hash(identifier) % SCOPE_TABLE_SIZE];
+
+	while (pEntryCurrent != NULL)
+	{
+		if (!strcmp(pEntryCurrent->identifier, identifier))
+		{
+			return pEntryCurrent;
+		}
+
+		pEntryCurrent = pEntryCurrent->next;
 	}
 
 	return NULL;
@@ -264,6 +257,24 @@ void printScope(FILE* target, ScopeNode* pScopeToPrint, int scopeLevel)
 			printIndentation(target, scopeLevel);
 			fprintf(target, "[entryType: %d, ident: %s, type %d]\n", pEntryCurrent->entryType,
 				pEntryCurrent->identifier, pEntryCurrent->type);
+
+			if (pEntryCurrent->entryType == FUNC)
+			{
+				printIndentation(target, scopeLevel);
+				fprintf(target, "[params: ");
+
+				if(pEntryCurrent->pFuncParams != NULL)
+				{
+					int j = 0;
+					while (pEntryCurrent->pFuncParams[j] != 0)
+					{
+						fprintf(target, "%d ", pEntryCurrent->pFuncParams[j]);
+						j++;
+					}
+				}
+				
+				fprintf(target, "]\n");
+			}
 
 			if (pEntryCurrent->pSubScope != NULL)
 			{

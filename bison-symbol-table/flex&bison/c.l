@@ -77,7 +77,7 @@ struct    { return process_token(yytext, "KW_STRUCT", "", KW_STRUCT);}
 [\_a-zA-Z][\_a-zA-Z0-9]* { return process_token(yytext, "IDENT", yytext, IDENT);}
 
  /* cutting out white space */
-[ \s\t\n] ;
+[ \s\t\n\r] ;
 
  /* multicharacter operators, e.g. ++ */ 
 "++" { return process_token(yytext, "INC", "", INC);}
@@ -85,7 +85,7 @@ struct    { return process_token(yytext, "KW_STRUCT", "", KW_STRUCT);}
 
 
  /* single character operator and punctuation */
-[\;\[\]\(\)\{\}\.\,\=\+\-\*\/\<] { return process_token(yytext, yytext, "", *yytext);}
+. { return process_token(yytext, yytext, "", *yytext);}
 
 
 

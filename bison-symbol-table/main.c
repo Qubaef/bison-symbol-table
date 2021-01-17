@@ -4,7 +4,7 @@
 
 enum Type
 {
-	INT,
+	INT = 1,
 	CHAR,
 	FLOAT,
 	VOID,
@@ -23,17 +23,29 @@ void testLookup(char* ident)
 	}
 }
 
+void testSubLookup(char* ident)
+{
+	if (lookup_subscope(ident))
+	{
+		printf("Symbol \"%s\" found\n", ident);
+	}
+	else
+	{
+		printf("Symbol \"%s\" not found\n", ident);
+	}
+}
+
 
 int main()
 {
+	// Both tests and presentation of sample usages of the functions
 	TableEntry* entry;
-
 	initSymbolTable();
 
 	// TEST: VARS
 	// Add sample entries
 	insertVar("aba", INT);
-	insertVar("kappa", FLOAT);
+	insertVar("kap", FLOAT);
 	insertVar("test", VOID);
 	insertVar("POG", UNSIGNED);
 	insertVar("_a", CHAR);
@@ -61,6 +73,14 @@ int main()
 	insertFunc("main", VOID, params);
 	insertVar("entry", VOID);
 	insertVar("params", INT);
+	insertVar("var", INT);
+	insertVar("war", INT);
+
+	testLookup("main");
+	testSubLookup("var");
+	testSubLookup("main");
+	testSubLookup("kap");
+
 
 	incScope();
 	decScope("main");
@@ -73,40 +93,42 @@ int main()
 
 	// Check values
 	testLookup("aba");
-	testLookup("POG");
-	testLookup("kappa");
+	testLookup("help");
+	testLookup("kap");
 	testLookup("stderr");
 
 	printSymbolTable();
 
-	//clock_t start = clock();
+	
+	clock_t start = clock();
 
-	//int attempts = 1000000;
-	//for (int i = 0; i < attempts; i++)
-	//{
-	//	decScope(); // new scope
+	int attempts = 10000;
+	for (int i = 0; i < attempts; i++)
+	{
+		insertFunc("for loop scope", INT, NULL);
+		
+		// Add sample entries
+		insertVar("kap", INT);
+		insertVar("kap1", INT);
+		insertVar("kap2", INT);
+		insertVar("kap3", INT);
+		insertVar("kap4", INT);
+		insertVar("kap5", INT);
+		insertVar("kap6", INT);
+		insertVar("kap7", INT);
+		insertVar("kap8", INT);
+		insertVar("kap9", INT);
 
-	//// Add sample entries
-	//	TableEntry* entry1 = insert("kappa", type, "2scop");
-	//	TableEntry* entry2 = insert("testy", type, "2scop");
-	//	TableEntry* entry3 = insert("abba", type, "2scop");
-	//	TableEntry* entry4 = insert("pog", type, "2scop");
-	//	TableEntry* entry5 = insert("a", type, "2scop");
-	//	TableEntry* entry6 = insert("Dott", type, "2scop");
+		entry = lookup("kap");
+		entry = lookup("kap1");
+		entry = lookup("kap5");
+		entry = lookup("notfound");
+		entry = lookup("notfound2");
+	}
 
-	//	entry = lookup("testy");
-	//	entry = lookup("i");
-	//	entry = lookup("abba");
-	//	entry = lookup("pog");
-	//	entry = lookup("a");
-
-	//	incScope();
-	//}
-
-	//clock_t end = clock();
-	//float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-	//printf("%f\n", seconds);
-
+	clock_t end = clock();
+	float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+	printf("time for %d scopes: %f\n",attempts, seconds);
 
 	return 0;
 }
