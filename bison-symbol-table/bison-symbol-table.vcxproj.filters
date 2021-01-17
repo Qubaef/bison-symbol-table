@@ -26,6 +26,9 @@
     <ClInclude Include="SymbolTable.h">
       <Filter>Pliki źródłowe</Filter>
     </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>Pliki źródłowe</Filter>
+    </ClInclude>
     <ClInclude Include="common.h">
       <Filter>Pliki źródłowe</Filter>
     </ClInclude>
