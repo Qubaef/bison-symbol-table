@@ -119,7 +119,6 @@ int main()
 		insertVar("kap8", INT);
 		insertVar("kap9", INT);
 		
-
 		entry = lookup("kap");
 		entry = lookup("kap1");
 		entry = lookup("kap5");
