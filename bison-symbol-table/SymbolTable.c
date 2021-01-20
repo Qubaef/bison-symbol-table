@@ -203,6 +203,23 @@ TableEntry* lookup_subscope(char* identifier)
 	return NULL;
 }
 
+TableEntry* lookup_subscope_specified(ScopeNode* scope, char* identifier)
+{
+	TableEntry* pEntryCurrent = scope->tableEntry[hash(identifier) % SCOPE_TABLE_SIZE];
+
+	while (pEntryCurrent != NULL)
+	{
+		if (!strcmp(pEntryCurrent->identifier, identifier))
+		{
+			return pEntryCurrent;
+		}
+
+		pEntryCurrent = pEntryCurrent->next;
+	}
+
+	return NULL;
+}
+
 
 int decScope(char* identifier)
 {
@@ -225,6 +242,7 @@ void incScope()
 	if (currentScopeNode->pParent != NULL)
 	{
 		currentScopeNode = currentScopeNode->pParent;
+		// 
 	}
 	else
 	{

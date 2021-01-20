@@ -21,6 +21,7 @@ typedef struct TableEntry
 	enum EntryType entryType;				// Type of the entry [ALL]
 	char identifier[MAX_IDENTIFIER_LENGTH];	// Entry Identifier  [ALL]
 	int type;								// Entry's type		 [VAR and FUNC]
+	int size;								// Entry's size		 [VAR and STRUCT]
 	int* pFuncParams;						// Func params types [FUNC]
 	struct ScopeNode* pSubScope;			// Entry's subScope  [FUNC and STRUCT]
 
@@ -72,6 +73,11 @@ TableEntry* lookup(char* identifier);
 // returns pointer to entry
 // returns NULL if not found
 TableEntry* lookup_subscope(char* identifier);
+
+// check if symbol exists in given subscope
+// returns pointer to entry
+// returns NULL if not found
+TableEntry* lookup_subscope_specified(ScopeNode* scope, char* identifier);
 
 // go down one scope
 int decScope(char* identifier);

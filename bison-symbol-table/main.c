@@ -51,8 +51,9 @@ int main()
 	insertVar("_a", CHAR);
 
 	// TEST: SUBSCOPE
-	insertScope("");
-	insertVar("kappa", FLOAT);
+	TableEntry* tab = insertScope("");
+	TableEntry* tab2 = insertVar("kappa", FLOAT);
+	tab->pSubScope = tab->pSubScope;
 	insertVar("test", INT);
 	insertVar("PogU", FLOAT);
 	incScope();
@@ -63,6 +64,8 @@ int main()
 	insertVar("month", INT);
 	insertVar("day", INT);
 	incScope();
+
+	lookup_subscope_specified(tab->pSubScope, "test");
 
 	// TEST: FUNC
 	int* params = calloc(MAX_FUNC_PARAMS, sizeof(int));

@@ -65,8 +65,22 @@ FuncParams _callParams = {{0}, {NULL}, 0};
 void funcParamsReset();
 void callParamsReset();
 
+// Structures variables and definitions
+TableEntry* last_struct = NULL;
+
+typedef struct StructSequence {
+    char ident[MAX_IDENTIFIER_LENGTH];
+    struct StructSequence* next;
+} StructSequence;
+
+StructSequence _seqStart = {"" , NULL};
+StructSequence** _seqCurr = &_seqStart.next;
+
+void clear_structSequence(StructSequence* node);
+
 // Variable used to store last met type (or key keyword)
 unsigned last_met = 0;
+unsigned last_array_size = 0;
 
 int presence_check(char* ident);
 int presence_subscope_check(char* ident);
@@ -162,10 +176,10 @@ STRUCTURE: KW_STRUCT OPT_TAG '{' FIELD_LIST '}' INC_SCOPE {
 /* OPT_TAG */
  /* opcjonalna nazwa struktury składa się z identyfikatora lub jest pusta */
 OPT_TAG: /* puste */  { 
-        insertStruct("struct");
+        last_struct = insertStruct("struct");
     }
     | IDENT { 
-        insertStruct("struct");
+        last_struct = insertStruct("struct");
     }
 ;
 
@@ -197,15 +211,25 @@ VAR: IDENT SUBSCRIPTS {
 
         // If ident is already present is current subscope, print error
         // and do not declare variable
-        if(presence_subscope_check($1) != 0){
-            symbol_table_message(ERR_MSG, MSG_ALREADY_DECLARED, $1);
+        TableEntry* res = lookup_subscope($1);
+        if(res != NULL){
+            if(res->entryType == FUNC || res->entryType == VAR){
+                symbol_table_message(ERR_MSG, MSG_ALREADY_DECLARED, $1);
+            }
         }
         else {
+            TableEntry* target;
             if($2 == ARRAY){
-                insertVar($1, last_met + ARRAY);
+                target = insertVar($1, last_met + ARRAY);
+                target->size = last_array_size;
             }
             else{
-                insertVar($1, last_met);
+                target = insertVar($1, last_met);
+            }
+
+            // If inserted var was structure type, assign last_struct to its subscope
+            if(last_met == STRUCTURE || last_met == STRUCTURE + ARRAY){
+                target->pSubScope = last_struct->pSubScope;
             }
         }
     }
@@ -221,15 +245,23 @@ VAR: IDENT SUBSCRIPTS {
         else{
             // If ident is already present is current subscope, print error
             // and do not declare variable
-            if(presence_subscope_check($1) != 0){
-                symbol_table_message(ERR_MSG, MSG_ALREADY_DECLARED, $1);
+            TableEntry* res = lookup_subscope($1);
+            if(res != NULL) {
+                if(res->entryType == FUNC || res->entryType == VAR) {
+                    symbol_table_message(ERR_MSG, MSG_ALREADY_DECLARED, $1);
+                }
             }
             else {
-                insertVar($1, last_met); 
+                TableEntry* target = insertVar($1, last_met); 
 
                 // If variable and expression types are mismatched, print warning
                 if(last_met != $4){
                     symbol_table_message(WRN_MSG, MSG_TYPES_MISMATCH, $1);
+                }
+
+                // If inserted var was structure type, assign last_struct to its subscope
+                if(last_met == STRUCTURE || last_met == STRUCTURE + ARRAY){
+                    target->pSubScope = last_struct->pSubScope;
                 }
             }
         }
@@ -240,15 +272,23 @@ VAR: IDENT SUBSCRIPTS {
         if($2 == ARRAY){
             // If ident is already present is current subscope, print error
             // and do not declare variable
-            if(presence_subscope_check($1) != 0){
-                symbol_table_message(ERR_MSG, MSG_ALREADY_DECLARED, $1);
+            TableEntry* res = lookup_subscope($1);
+            if(res != NULL) {
+                if(res->entryType == FUNC || res->entryType == VAR) {
+                    symbol_table_message(ERR_MSG, MSG_ALREADY_DECLARED, $1);
+                }
             }
             else {
-                insertVar($1, last_met + ARRAY);
+                TableEntry* target = insertVar($1, last_met + ARRAY);
 
                 // If variable and expression types are mismatched, print warning
                 if(last_met != INTEGER){
                     symbol_table_message(WRN_MSG, MSG_TYPES_MISMATCH, $1);
+                }
+
+                // If inserted var was structure type, assign last_struct to its subscope
+                if(last_met == STRUCTURE || last_met == STRUCTURE + ARRAY){
+                    target->pSubScope = last_struct->pSubScope;
                 }
             }
         }
@@ -415,15 +455,12 @@ FUN_CALL: IDENT '(' ACT_PARAMS ')' ';' {
                     if(res->pFuncParams[j] != _callParams.params_types[j]){
                         symbol_table_message(WRN_MSG, MSG_INV_FUNC_PARAM, $1);
                     }
-
                     j++;
                 }
 
                 if(j != _callParams.params_number){
                     symbol_table_message(ERR_MSG, MSG_INV_FUNC_PARAMS_NUM, $1);
                 }
-                
-
             }
             else{
                 if(_callParams.params_number != 0){
@@ -483,7 +520,19 @@ INCR: IDENT QUALIF INC {
  /* kwalifikator może być indeksami (SUBSCRIPTS),
     lub może składać się z kropki, identyfikatora i kwalifikatora */
 QUALIF: SUBSCRIPTS { $$ = $1; } 
-    | '.' IDENT QUALIF { $$ = 0; }
+    | '.' IDENT QUALIF { 
+        $$ = 0;
+
+        printf("%d\n", _seqStart.next);
+        (*_seqCurr) = malloc(sizeof(StructSequence));
+        printf("%d\n", _seqStart.next);
+        printf("%d\n", (*_seqCurr)->next);
+        printf("%s\n", $2);
+        strcpy((*_seqCurr)->ident, $2);
+        printf("%s\n", (*_seqCurr)->ident);
+        (*_seqCurr)->next = NULL;
+        _seqCurr = &(*_seqCurr)->next;
+    }
 ;
 
 /* ASSIGNMENT */
@@ -512,6 +561,36 @@ ASSIGNMENT: IDENT QUALIF '=' EXPR {
                 // Check array types
                 if($2 == ARRAY) {
                     if(ident_type > ARRAY) {
+
+                        StructSequence* current = _seqStart.next;
+            
+                        while(res->pSubScope != NULL) {
+            
+                            if(current == NULL){
+                                break;
+                            }
+            
+                            printf("%s\n", current->ident);
+                            res = lookup_subscope_specified(res->pSubScope, current->ident);
+            
+                            if(res == NULL) {
+                                symbol_table_message(ERR_MSG, MSG_UNDECLARED, current->ident);
+                            }
+            
+                            printf("type: %d\n", ident_type);
+                            ident_type = res->type;
+            
+            
+                            current = current->next;
+                        }
+            
+                        // Deallocate StructSequence
+                        if(_seqStart.next != NULL){
+                            clear_structSequence(_seqStart.next);
+                            _seqCurr = &_seqStart.next;
+                            _seqStart.next = NULL;
+                        }
+
                         // if ident_type is specified as array and it has qualifiers,
                         // change it's value to basic type
                         if( ident_type - ARRAY != expr_type) {
@@ -533,6 +612,36 @@ ASSIGNMENT: IDENT QUALIF '=' EXPR {
                     else{
                         // if ident_type is specified as basic and it doesn't have qualifiers,
                         // check types
+                        StructSequence* current = _seqStart.next;
+            
+                        while(res->pSubScope != NULL) {
+            
+                            if(current == NULL){
+                                break;
+                            }
+            
+                            printf("here: %s\n", current->ident);
+                            printf("here: %d\n", res);
+                            res = lookup_subscope_specified(res->pSubScope, current->ident);
+                            printf("here: %d\n", res);
+                            if(res == NULL) {
+                                symbol_table_message(ERR_MSG, MSG_UNDECLARED, current->ident);
+                            }
+            
+                            printf("type: %d\n", ident_type);
+                            ident_type = res->type;
+            
+            
+                            current = current->next;
+                        }
+            
+                        // Deallocate StructSequence
+                        if(_seqStart.next != NULL){
+                            clear_structSequence(_seqStart.next);
+                            _seqCurr = &_seqStart.next;
+                            _seqStart.next = NULL;
+                        }
+
                         if( ident_type != expr_type) {
                             symbol_table_message(WRN_MSG, MSG_TYPES_MISMATCH, $1);
                         }
@@ -544,7 +653,8 @@ ASSIGNMENT: IDENT QUALIF '=' EXPR {
 
 /* NUMBER */
  /* liczba może być liczbą całkowitą lub rzeczywistą */
-NUMBER: INTEGER_CONST { $$ = INTEGER; }
+NUMBER: INTEGER_CONST { $$ = INTEGER;
+        last_array_size = INTEGER_CONST; }
     | FLOAT_CONST { $$ = REAL; }
 ;
 
@@ -557,15 +667,50 @@ NUMBER: INTEGER_CONST { $$ = INTEGER; }
     lub wyrażeniem warunkowym (COND_EXPR) */
 EXPR: NUMBER { $$ = $1; }
     | IDENT QUALIF {
-        int type = presence_check($1);
+        TableEntry* res = lookup($1);
+        int type = 0;
 
-        if(type > ARRAY){
-            type -= $2;
-        }
-        else if(type == 0){
+        printf(" im in %s\n", $1);
+        if(res == NULL || res->entryType != VAR) {
             symbol_table_message(ERR_MSG, MSG_UNDECLARED, $1);
         }
+        else {
+            type = res->type;
+            StructSequence* current = _seqStart.next;
 
+            while(res->pSubScope != NULL) {
+
+                if(current == NULL){
+                    break;
+                }
+
+                printf("%s\n", current->ident);
+                res = lookup_subscope_specified(res->pSubScope, current->ident);
+
+                if(res == NULL) {
+                    symbol_table_message(ERR_MSG, MSG_UNDECLARED, current->ident);
+                }
+
+                printf("type: %d\n", type);
+                type = res->type;
+
+
+                current = current->next;
+            }
+
+            // Deallocate StructSequence
+            if(_seqStart.next != NULL){
+                clear_structSequence(_seqStart.next);
+                _seqCurr = &_seqStart.next;
+                _seqStart.next = NULL;
+            }
+
+            if(type > ARRAY){
+                type -= $2;
+            }
+        }
+
+        printf("type: %d\n", type);
         $$ = type; 
     }
     | '(' EXPR ')' { $$ = $2; }
@@ -785,4 +930,12 @@ int if_type_numeric(unsigned type){
 // print properly formated symbol message
 void symbol_table_message(enum Messages type, enum Messages msg, char* param) {
     printf("ST: %s: %s %s.\n", st_messages[type], st_messages[msg], param);
+}
+
+
+void clear_structSequence(StructSequence* node) {
+    if(node != NULL){
+        clear_structSequence(node->next);
+        free(node);
+    }
 }
